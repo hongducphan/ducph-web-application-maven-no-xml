@@ -50,14 +50,14 @@ public class AppConfig implements WebMvcConfigurer {
 
         // set jdbc driver
         try {
-            dataSource.setDriverClass("com.mysql.jdbc.Driver");
+            dataSource.setDriverClass(env.getProperty("jdbc.driver"));
         } catch (PropertyVetoException e) {
             throw new RuntimeException(e);
         }
 
         // log db user and pass info
-        logger.info("jdbc.url=" + env.getProperty("jdbc.url"));
-        logger.info("jdbc.user=" + env.getProperty("jdbc.user"));
+        logger.info(">>>jdbc.url=" + env.getProperty("jdbc.url"));
+        logger.info(">>>jdbc.user=" + env.getProperty("jdbc.user"));
 
         // set db connection properties
         dataSource.setJdbcUrl(env.getProperty("jdbc.url"));
@@ -72,7 +72,7 @@ public class AppConfig implements WebMvcConfigurer {
 
         return dataSource;
     }
-    
+
     private Properties getHibernateProperties() {
         // set hibernate properties
         Properties properties = new Properties();
@@ -80,7 +80,7 @@ public class AppConfig implements WebMvcConfigurer {
         properties.setProperty("hibernate.show_sql", env.getProperty("hibernate.show_sql"));
         return properties;
     }
-    
+
     @Bean
     public LocalSessionFactoryBean sessionFactory() {
         // create session factory
@@ -91,7 +91,51 @@ public class AppConfig implements WebMvcConfigurer {
         sessionFactory.setHibernateProperties(getHibernateProperties());
         return sessionFactory;
     }
-    
+
+    // define a bean for security data source
+    @Bean
+    public DataSource securityDataSource() {
+
+        // create connection pool
+        ComboPooledDataSource securityDataSource = new ComboPooledDataSource();
+
+        // set the jdbc driver class
+        try {
+
+            securityDataSource.setDriverClass(env.getProperty("security.jdbc.driver"));
+        } catch (PropertyVetoException exc) {
+            throw new RuntimeException(exc);
+        }
+
+        // log the connection props
+        // for sanity's sake, log this info
+        // just to make sure we are REALLY reading data from properties file
+
+        logger.info(">>> security.jdbc.url=" + env.getProperty("security.jdbc.url"));
+        logger.info(">>> security.jdbc.user=" + env.getProperty("security.jdbc.user"));
+
+
+        // set database connection props
+
+        securityDataSource.setJdbcUrl(env.getProperty("security.jdbc.url"));
+        securityDataSource.setUser(env.getProperty("security.jdbc.user"));
+
+        securityDataSource.setPassword(env.getProperty("security.jdbc.password"));
+
+        // set connection pool props
+
+        securityDataSource.setInitialPoolSize(
+                Integer.parseInt(env.getProperty("security.connection.pool.initialPoolSize")));
+        securityDataSource.setMinPoolSize(
+                Integer.parseInt(env.getProperty("security.connection.pool.minPoolSize")));
+        securityDataSource.setMaxPoolSize(
+                Integer.parseInt(env.getProperty("security.connection.pool.maxPoolSize")));
+        securityDataSource.setMaxIdleTime(
+                Integer.parseInt(env.getProperty("security.connection.pool.maxIdleTime")));
+
+        return securityDataSource;
+    }
+
     @Bean
     @Autowired
     public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
